@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { getDb, ObjectId } from "@/lib/mongodb";
 import crypto from "crypto";
+import fs from "fs";
+import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,29 +54,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate a unique filename for when the college storage server is integrated
+    // Generate a unique filename
     const uniqueId = crypto.randomUUID();
     const extension = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
     const filename = `${uniqueId}.${extension}`;
 
-    // Simulated URL — will be replaced with the college storage server URL later
-    const simulatedUrl = `/media/${filename}`;
+    // Save file to public/uploads/ so Next.js serves it as a static file
+    const uploadsDir = path.join(process.cwd(), "public", "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const filePath = path.join(uploadsDir, filename);
+    const arrayBuffer = await file.arrayBuffer();
+    fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
 
-    // Save metadata to MongoDB (no file written to disk yet)
+    // URL served directly by Next.js static file serving
+    const fileUrl = `/uploads/${filename}`;
+
+    // Save metadata to MongoDB
     const db = await getDb();
 
     const newMediaDoc = {
       title,
       description: description || null,
       type: isVideo ? "VIDEO" : "PHOTO",
-      url: simulatedUrl,
+      url: fileUrl,
       thumbnailUrl: null,
-      publicId: filename,           // will become the file identifier on the storage server
+      publicId: filename,
       status: "PENDING",
       eventName: eventName || null,
       eventDate: eventDate || null,
       fileSize: file.size,
-      duration: null,               // video duration — to be populated by storage server later
+      duration: null,
       originalFilename: file.name,
       mimeType: file.type,
       userId: user.userId,

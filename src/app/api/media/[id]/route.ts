@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ObjectId } from "@/lib/mongodb";
 import { getUser } from "@/lib/auth";
+import fs from "fs";
+import path from "path";
 
 // PATCH /api/media/[id] - Approve or reject media (librarian only)
 export async function PATCH(
@@ -74,7 +76,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/media/[id] - Delete media (librarian or homepage admin action)
+// DELETE /api/media/[id] - Delete media (librarian or admin)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -85,6 +87,13 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: "Not authenticated" },
         { status: 401 }
+      );
+    }
+
+    if (user.role !== "LIBRARIAN" && user.role !== "ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Only librarians can delete media" },
+        { status: 403 }
       );
     }
 
@@ -99,8 +108,16 @@ export async function DELETE(
       );
     }
 
+    // Delete physical file from public/uploads/ if it exists
+    if (media.publicId) {
+      const safeFilename = path.basename(media.publicId as string);
+      const filePath = path.join(process.cwd(), "public", "uploads", safeFilename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
     // Delete metadata from database
-    // NOTE: Physical file deletion will be handled by the college storage server later
     await db.collection("media").deleteOne({ _id: objectId });
 
     return NextResponse.json({
@@ -115,4 +132,3 @@ export async function DELETE(
     );
   }
 }
-

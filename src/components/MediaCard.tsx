@@ -35,6 +35,7 @@ export default function MediaCard({
   const [loading, setLoading] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const handleAction = async (
     action: "approve" | "reject" | "delete",
@@ -211,18 +212,41 @@ export default function MediaCard({
           )}
 
           {mode === "librarian" && (
-            <button
-              onClick={() => handleAction("delete", onDelete)}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 mt-2 border border-rose-200 text-rose-600 rounded-xl text-sm font-medium hover:bg-rose-50 disabled:opacity-50 transition-all"
-            >
-              {loading === "delete" ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
+            confirmDelete ? (
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={async () => {
+                    setConfirmDelete(false);
+                    await handleAction("delete", onDelete);
+                  }}
+                  disabled={loading !== null}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 transition-all"
+                >
+                  {loading === "delete" ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  Yes, Delete
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-all"
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmDelete(true)}
+                disabled={loading !== null}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 mt-2 border border-rose-200 text-rose-600 rounded-xl text-sm font-medium hover:bg-rose-50 disabled:opacity-50 transition-all"
+              >
                 <Trash2 className="w-4 h-4" />
-              )}
-              Delete
-            </button>
+                Delete
+              </button>
+            )
           )}
         </div>
       </div>

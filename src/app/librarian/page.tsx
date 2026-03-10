@@ -125,10 +125,6 @@ export default function LibrarianPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this media? This cannot be undone.")) {
-      return;
-    }
-
     try {
       const res = await fetch(`/api/media/${id}`, {
         method: "DELETE",
@@ -136,9 +132,12 @@ export default function LibrarianPage() {
       const data = await res.json();
       if (data.success) {
         setMedia((prev) => prev.filter((m) => m.id !== id));
+      } else {
+        alert(data.error || "Failed to delete media");
       }
     } catch (error) {
       console.error("Failed to delete:", error);
+      alert("Network error. Could not delete media.");
     }
   };
 

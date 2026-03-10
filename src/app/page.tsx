@@ -4,14 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Carousel from "@/components/Carousel";
 import { MediaItem } from "@/lib/types";
-import { Monitor, RefreshCw, Image, Video, Sparkles, Play, Trash2, Loader2, Shield } from "lucide-react";
+import { Monitor, RefreshCw, Image, Video, Sparkles, Play } from "lucide-react";
 
 export default function DisplayPage() {
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"ALL" | "PHOTO" | "VIDEO">("ALL");
   const [user, setUser] = useState<any>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
   const checkAuth = async () => {
@@ -43,27 +42,7 @@ export default function DisplayPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this media?")) return;
-    
-    setDeletingId(id);
-    try {
-      const res = await fetch(`/api/media/${id}`, {
-        method: "DELETE",
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMedia((prev) => prev.filter((item) => item.id !== id));
-      } else {
-        alert(data.error || "Failed to delete media");
-      }
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert("An error occurred while deleting");
-    } finally {
-      setDeletingId(null);
-    }
-  };
+
 
   useEffect(() => {
     checkAuth();
@@ -156,10 +135,7 @@ export default function DisplayPage() {
             </div>
           </div>
         ) : (
-          <Carousel 
-            media={media} 
-            onDelete={handleDelete}
-          />
+          <Carousel media={media} />
         )}
       </div>
 
@@ -235,21 +211,7 @@ export default function DisplayPage() {
                   </span>
                 </div>
 
-                {/* Delete Button (Grid) */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item.id);
-                  }}
-                  disabled={deletingId === item.id}
-                  className="absolute top-3 right-3 p-2 bg-red-600 text-white rounded-xl shadow-lg transition-all hover:bg-red-700 disabled:opacity-50 z-20"
-                >
-                  {deletingId === item.id ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-4 h-4" />
-                  )}
-                </button>
+
               </div>
             ))}
           </div>

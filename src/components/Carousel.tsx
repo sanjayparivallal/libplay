@@ -59,7 +59,7 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
       }
     } else {
       // For images, make sure autoplay is running
-      autoplayPlugin.current.play();
+      autoplayPlugin.current.reset();
     }
   }, [emblaApi, media]);
 
@@ -75,7 +75,7 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
   // Handle video ended — move to next slide
   const handleVideoEnded = useCallback(() => {
     if (emblaApi) {
-      autoplayPlugin.current.play();
+      autoplayPlugin.current.reset();
       emblaApi.scrollNext();
     }
   }, [emblaApi]);
