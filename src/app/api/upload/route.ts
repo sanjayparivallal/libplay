@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
 import { getDb, ObjectId } from "@/lib/mongodb";
 import crypto from "crypto";
-import fs from "fs";
+import { promises as fs, existsSync } from "fs";
 import path from "path";
 
 export async function POST(request: NextRequest) {
@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.role !== "STAFF" && user.role !== "ADMIN") {
+    if (user.role !== "STAFF" && user.role !== "LIBRARIAN") {
       return NextResponse.json(
-        { success: false, error: "Only staff can upload media" },
+        { success: false, error: "Only staff or librarians can upload media" },
         { status: 403 }
       );
     }
@@ -61,12 +61,13 @@ export async function POST(request: NextRequest) {
 
     // Save file to public/uploads/ so Next.js serves it as a static file
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
+    if (!existsSync(uploadsDir)) {
+      await fs.mkdir(uploadsDir, { recursive: true });
     }
     const filePath = path.join(uploadsDir, filename);
     const arrayBuffer = await file.arrayBuffer();
-    fs.writeFileSync(filePath, Buffer.from(arrayBuffer));
+    const buffer = Buffer.from(arrayBuffer);
+    await fs.writeFile(filePath, buffer);
 
     // URL served directly by Next.js static file serving
     const fileUrl = `/uploads/${filename}`;
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
       url: fileUrl,
       thumbnailUrl: null,
       publicId: filename,
-      status: "PENDING",
+      status: user.role === "LIBRARIAN" ? "APPROVED" : "PENDING",
       eventName: eventName || null,
       eventDate: eventDate || null,
       fileSize: file.size,
@@ -111,7 +112,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: media,
-      message: "Media uploaded successfully. Waiting for librarian approval.",
+      message: user.role === "LIBRARIAN"
+        ? "Media uploaded and approved successfully."
+        : "Media uploaded successfully. Waiting for librarian approval.",
     });
   } catch (error) {
     console.error("Upload error:", error);

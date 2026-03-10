@@ -56,35 +56,28 @@ export default function DisplayPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Header with mesh gradient */}
-      <div className="mesh-gradient text-white relative overflow-hidden">
-        {/* Decorative elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-24 -right-24 w-96 h-96 bg-accent-500/10 rounded-full blur-3xl animate-float" />
-          <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-primary-400/10 rounded-full blur-3xl animate-float" style={{ animationDelay: "3s" }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-500/5 rounded-full blur-3xl" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20 relative z-10">
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-4 sm:px-6 lg:px-8 py-8 mb-6 text-white">
+        <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-4 animate-fade-in">
-            <div className="p-2.5 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10">
+            <div className="p-2.5 bg-white/20 backdrop-blur rounded-xl border border-white/20">
               <Monitor className="w-6 h-6" />
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-accent-300 animate-pulse-soft" />
-              <span className="text-sm font-medium text-primary-200 uppercase tracking-widest">Live Gallery</span>
+              <span className="text-sm font-semibold text-primary-100 uppercase tracking-widest">Live Gallery</span>
             </div>
           </div>
-          
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight animate-fade-in" style={{ animationDelay: "0.1s" }}>
+
+          <h1 className="text-3xl font-bold text-white tracking-tight animate-fade-in" style={{ animationDelay: "0.1s" }}>
             Library Events
           </h1>
-          <p className="text-primary-200/80 text-lg sm:text-xl max-w-2xl mt-4 animate-fade-in" style={{ animationDelay: "0.2s" }}>
+          <p className="text-primary-100 text-sm mt-0.5 font-medium max-w-2xl animate-fade-in" style={{ animationDelay: "0.2s" }}>
             Explore photos and videos from our latest library events and activities
           </p>
 
           {/* Filter Pills */}
-          <div className="flex flex-wrap items-center gap-3 mt-8 animate-fade-in" style={{ animationDelay: "0.3s" }}>
+          <div className="flex flex-wrap items-center gap-3 mt-6 animate-fade-in" style={{ animationDelay: "0.3s" }}>
             {[
               { key: "ALL" as const, label: "All Media", icon: null },
               { key: "PHOTO" as const, label: "Photos", icon: <Image className="w-4 h-4" /> },
@@ -93,37 +86,29 @@ export default function DisplayPage() {
               <button
                 key={f.key}
                 onClick={() => setFilter(f.key)}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-300 ${
-                  filter === f.key
-                    ? "bg-white text-primary-700 shadow-lg shadow-white/20 scale-105"
-                    : "bg-white/10 text-white/80 hover:bg-white/20 backdrop-blur-sm border border-white/10"
-                }`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${filter === f.key
+                  ? "bg-white text-primary-700 shadow-md"
+                  : "bg-white/10 text-white/80 hover:bg-white/20 border border-white/10"
+                  }`}
               >
                 {f.icon}
                 {f.label}
               </button>
             ))}
-            
+
             <button
               onClick={fetchMedia}
-              className="ml-auto flex items-center gap-2 px-4 py-2.5 rounded-full text-sm font-medium bg-white/10 text-white/80 hover:bg-white/20 backdrop-blur-sm border border-white/10 transition-all duration-300 hover:scale-105"
+              className="ml-auto flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-white/10 text-white/80 hover:bg-white/20 border border-white/10 transition-all duration-300"
             >
               <RefreshCw className="w-4 h-4" />
               Refresh
             </button>
           </div>
         </div>
-
-        {/* Bottom curve */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <svg viewBox="0 0 1440 60" fill="none" className="w-full text-gray-50">
-            <path d="M0,60 L0,20 Q720,60 1440,20 L1440,60 Z" fill="currentColor" />
-          </svg>
-        </div>
       </div>
 
       {/* Carousel Section */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-4 relative z-10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-12 relative z-10">
         {loading ? (
           <div className="flex items-center justify-center h-[60vh] bg-white rounded-2xl shadow-card">
             <div className="text-center">
@@ -144,7 +129,7 @@ export default function DisplayPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-1 h-8 bg-gradient-to-b from-primary-500 to-accent-500 rounded-full" />
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            <h2 className="text-2xl font-bold text-gray-800">
               All Event Media
             </h2>
             <span className="ml-2 px-3 py-1 bg-primary-50 text-primary-600 rounded-full text-sm font-semibold">
@@ -178,7 +163,7 @@ export default function DisplayPage() {
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                   />
                 )}
-                
+
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-all duration-300">
                   <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
@@ -199,14 +184,13 @@ export default function DisplayPage() {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Type badge */}
                 <div className="absolute top-3 left-3">
-                  <span className={`badge ${
-                    item.type === "VIDEO"
-                      ? "bg-red-500/90 text-white backdrop-blur-sm"
-                      : "bg-primary-500/90 text-white backdrop-blur-sm"
-                  }`}>
+                  <span className={`badge ${item.type === "VIDEO"
+                    ? "bg-red-500/90 text-white backdrop-blur-sm"
+                    : "bg-primary-500/90 text-white backdrop-blur-sm"
+                    }`}>
                     {item.type}
                   </span>
                 </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Check,
   X,
@@ -72,11 +73,10 @@ export default function MediaCard({
 
   return (
     <>
-      <div className="glass-card rounded-2xl overflow-hidden hover:shadow-card-hover transition-all duration-300 group/card">
+      <div className="glass-card rounded-2xl overflow-hidden hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 group/card">
         {/* Thumbnail */}
         <div
-          className="relative aspect-video bg-gray-100 cursor-pointer overflow-hidden"
-          onClick={() => setShowPreview(true)}
+          className="relative aspect-video bg-gray-100 overflow-hidden"
         >
           {media.type === "VIDEO" ? (
             media.thumbnailUrl && !imageError ? (
@@ -105,20 +105,26 @@ export default function MediaCard({
           )}
 
           {/* Hover overlay */}
-          <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/30 transition-colors duration-300 flex items-center justify-center">
-            <div className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/card:opacity-100 scale-75 group-hover/card:scale-100 transition-all duration-300">
-              <Eye className="w-5 h-5 text-gray-700" />
+          <div className="absolute inset-0 bg-black/0 group-hover/card:bg-black/30 transition-colors duration-300 flex items-center justify-center pointer-events-none">
+            <div
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setShowPreview(true);
+              }}
+              className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/card:opacity-100 scale-75 group-hover/card:scale-100 transition-all duration-300 cursor-pointer pointer-events-auto shadow-lg hover:bg-white hover:scale-110"
+            >
+              <Eye className="w-6 h-6 text-gray-800" />
             </div>
           </div>
 
           {/* Type badge */}
           <div className="absolute top-2.5 left-2.5">
             <span
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold backdrop-blur-sm ${
-                media.type === "VIDEO"
-                  ? "bg-red-500/80 text-white"
-                  : "bg-primary-500/80 text-white"
-              }`}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold backdrop-blur-sm ${media.type === "VIDEO"
+                ? "bg-red-500/80 text-white"
+                : "bg-primary-500/80 text-white"
+                }`}
             >
               {media.type === "VIDEO" ? (
                 <Play className="w-3 h-3" />
@@ -132,9 +138,8 @@ export default function MediaCard({
           {/* Status badge */}
           <div className="absolute top-2.5 right-2.5">
             <span
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold border backdrop-blur-sm ${
-                statusColors[media.status as keyof typeof statusColors]
-              }`}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold border backdrop-blur-sm ${statusColors[media.status as keyof typeof statusColors]
+                }`}
             >
               {media.status}
             </span>
@@ -187,7 +192,7 @@ export default function MediaCard({
               <button
                 onClick={() => handleAction("approve", onApprove)}
                 disabled={loading !== null}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-all hover:shadow-lg hover:shadow-emerald-200"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl text-sm font-semibold hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 transition-all shadow-[0_4px_14px_0_rgba(16,185,129,0.39)] hover:shadow-[0_6px_20px_rgba(16,185,129,0.23)] hover:-translate-y-0.5"
               >
                 {loading === "approve" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -199,7 +204,7 @@ export default function MediaCard({
               <button
                 onClick={() => handleAction("reject", onReject)}
                 disabled={loading !== null}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 disabled:opacity-50 transition-all hover:shadow-lg hover:shadow-rose-200"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gradient-to-r from-rose-500 to-rose-600 text-white rounded-xl text-sm font-semibold hover:from-rose-600 hover:to-rose-700 disabled:opacity-50 transition-all shadow-[0_4px_14px_0_rgba(244,63,94,0.39)] hover:shadow-[0_6px_20px_rgba(244,63,94,0.23)] hover:-translate-y-0.5"
               >
                 {loading === "reject" ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -252,18 +257,18 @@ export default function MediaCard({
       </div>
 
       {/* Preview Modal */}
-      {showPreview && (
+      {showPreview && typeof document !== "undefined" && createPortal(
         <div
           className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setShowPreview(false)}
         >
           <div
-            className="max-w-5xl max-h-[90vh] w-full animate-scale-in"
+            className="relative max-w-5xl max-h-[90vh] w-full flex flex-col items-center animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowPreview(false)}
-              className="absolute top-4 right-4 p-2.5 bg-white/10 backdrop-blur rounded-xl text-white hover:bg-white/20 transition-colors"
+              className="absolute -top-14 right-0 z-[60] p-2.5 bg-white/10 backdrop-blur rounded-xl text-white hover:bg-white/20 transition-colors shadow-lg"
             >
               <X className="w-6 h-6" />
             </button>
@@ -287,7 +292,8 @@ export default function MediaCard({
               </h3>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

@@ -13,13 +13,12 @@ interface CarouselProps {
 
 export default function Carousel({ media, onDelete }: CarouselProps) {
   const autoplayPlugin = useRef(
-    Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: false })
+    Autoplay({ delay: 5000, stopOnInteraction: false })
   );
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [autoplayPlugin.current]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
-  const [showSoundHint, setShowSoundHint] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
@@ -31,7 +30,7 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
   const onSelect = useCallback(() => {
     if (!emblaApi) return;
     const index = emblaApi.selectedScrollSnap();
-    
+
     // Check if the actual selected item index has changed
     // We don't want to reset video if just the 'media' reference changed but index is same
     setSelectedIndex((prevIndex) => {
@@ -55,10 +54,12 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
       autoplayPlugin.current.stop();
       const videoEl = videoRefs.current.get(currentMedia.id);
       if (videoEl && videoEl.paused) {
-        videoEl.play().catch(() => {});
+        videoEl.play().catch(() => { });
       }
     } else {
       // For images, make sure autoplay is running
+      autoplayPlugin.current.play();
+      // Restart the timer so it gets a full 5 seconds
       autoplayPlugin.current.reset();
     }
   }, [emblaApi, media]);
@@ -75,8 +76,8 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
   // Handle video ended — move to next slide
   const handleVideoEnded = useCallback(() => {
     if (emblaApi) {
-      autoplayPlugin.current.reset();
       emblaApi.scrollNext();
+      // the onSelect handler will restart autoplay if the next object is an image
     }
   }, [emblaApi]);
 
@@ -84,9 +85,9 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => { });
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => { });
     }
   }, []);
 
@@ -97,9 +98,26 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
     });
   }, [isMuted]);
 
+  // Constantly ensure Autoplay remains paused while a video is selected
+  // This prevents user interactions (like volume click) from restarting the timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!emblaApi) return;
+      const index = emblaApi.selectedScrollSnap();
+      if (media[index]?.type === "VIDEO") {
+        const autoplay = emblaApi.plugins().autoplay;
+        if (autoplay && typeof autoplay.stop === "function") {
+          autoplay.stop();
+        } else if (autoplayPlugin.current && typeof autoplayPlugin.current.stop === "function") {
+          autoplayPlugin.current.stop();
+        }
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [emblaApi, media]);
+
   const toggleMute = useCallback(() => {
     setIsMuted(prev => !prev);
-    setShowSoundHint(false);
   }, []);
 
   const handleDeleteItem = async (id: string) => {
@@ -147,7 +165,7 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
           {media.map((item) => {
             const isVideo = item.type === "VIDEO";
             // Use streaming route for videos, direct link for photos
-            const mediaUrl = isVideo 
+            const mediaUrl = isVideo
               ? `/api/media/stream?filename=${encodeURIComponent(item.publicId)}`
               : item.url;
 
@@ -178,7 +196,7 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
 
                 {/* Overlay Info */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-6 sm:p-8 transition-opacity duration-300">
-                  <h3 className="text-white text-xl sm:text-2xl font-bold drop-shadow-lg">{item.title}</h3>
+                  <h3 className="text-white text-xl sm:text-2xl font-bold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{item.title}</h3>
                   {item.eventName && (
                     <p className="text-white/70 text-sm mt-1.5 flex items-center gap-2">
                       <span className="w-1 h-1 rounded-full bg-accent-400 inline-block" />
@@ -196,27 +214,14 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
                 {/* Media type badge */}
                 <div className="absolute top-4 right-4 transition-opacity duration-300">
                   <span
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm ${
-                      item.type === "VIDEO"
-                        ? "bg-red-500/80 text-white"
-                        : "bg-primary-500/80 text-white"
-                    }`}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm ${item.type === "VIDEO"
+                      ? "bg-red-500/80 text-white"
+                      : "bg-primary-500/80 text-white"
+                      }`}
                   >
                     {item.type === "VIDEO" ? "\u25B6 Video" : "\u2318 Photo"}
                   </span>
                 </div>
-
-                {/* Sound Hint Overlay for Videos */}
-                {isVideo && isMuted && showSoundHint && (
-                  <div 
-                    className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none animate-fade-in"
-                  >
-                    <div className="bg-black/60 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 flex items-center gap-3 animate-bounce-subtle">
-                      <VolumeX className="w-5 h-5 text-white" />
-                      <span className="text-white font-medium">Click to enable sound</span>
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -290,11 +295,10 @@ export default function Carousel({ media, onDelete }: CarouselProps) {
               <button
                 key={index}
                 onClick={() => emblaApi?.scrollTo(index)}
-                className={`pointer-events-auto h-2 rounded-full transition-all duration-300 ${
-                  index === selectedIndex
-                    ? "bg-white w-8 shadow-md"
-                    : "bg-white/40 w-2 hover:bg-white/60"
-                }`}
+                className={`pointer-events-auto h-2 rounded-full transition-all duration-300 ${index === selectedIndex
+                  ? "bg-white w-8 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
+                  : "bg-white/40 w-2 hover:bg-white/80 hover:scale-110"
+                  }`}
               />
             ))}
           </div>

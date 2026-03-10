@@ -27,6 +27,7 @@ export default function StaffPage() {
   const [activeTab, setActiveTab] = useState<"upload" | "my-uploads">(
     "upload"
   );
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const router = useRouter();
 
   useEffect(() => {
@@ -34,7 +35,10 @@ export default function StaffPage() {
   }, []);
 
   useEffect(() => {
-    if (user) fetchMyMedia();
+    if (user) {
+      fetchMyMedia();
+      fetchStats();
+    }
   }, [user]);
 
   const checkAuth = async () => {
@@ -65,6 +69,18 @@ export default function StaffPage() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/media/stats");
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -72,58 +88,50 @@ export default function StaffPage() {
       </div>
     );
   }
-
-  const pendingCount = media.filter((m) => m.status === "PENDING").length;
-  const approvedCount = media.filter((m) => m.status === "APPROVED").length;
-  const rejectedCount = media.filter((m) => m.status === "REJECTED").length;
-
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-accent-600 px-4 sm:px-6 lg:px-8 py-10 mb-8">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-accent-400/20 rounded-full blur-3xl" />
-        </div>
-        <div className="relative max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center">
-              <Upload className="w-5 h-5 text-white" />
-            </div>
-            <h1 className="text-3xl font-bold text-white">Staff Dashboard</h1>
+      <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-4 sm:px-6 lg:px-8 py-8 mb-6">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/20 shadow-sm shrink-0">
+            <Upload className="w-6 h-6 text-white" />
           </div>
-          <p className="text-white/70 ml-[52px]">
-            Upload photos and videos from library events
-          </p>
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">Staff Dashboard</h1>
+            <p className="text-primary-100 text-sm mt-0.5 font-medium">
+              Upload photos and videos from library events
+            </p>
+          </div>
+        </div>
+      </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mt-8">
-            <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-yellow-400/20 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-yellow-300" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{pendingCount}</p>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Pending</p>
-              </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="bg-white border border-gray-100 shadow-md shadow-gray-200/50 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300 group border-l-4 border-l-amber-500">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+              <Clock className="w-6 h-6 text-amber-600" />
             </div>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-400/20 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-300" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{approvedCount}</p>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Approved</p>
-              </div>
+            <div>
+              <p className="text-3xl font-extrabold text-gray-800 leading-none">{stats.pending}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">Pending</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-red-400/20 flex items-center justify-center">
-                <XCircle className="w-5 h-5 text-red-300" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-white">{rejectedCount}</p>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Rejected</p>
-              </div>
+          </div>
+          <div className="bg-white border border-gray-100 shadow-md shadow-gray-200/50 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300 group border-l-4 border-l-emerald-500">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-gray-800 leading-none">{stats.approved}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">Approved</p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-100 shadow-md shadow-gray-200/50 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300 group border-l-4 border-l-rose-500">
+            <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+              <XCircle className="w-6 h-6 text-rose-600" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-gray-800 leading-none">{stats.rejected}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">Rejected</p>
             </div>
           </div>
         </div>
@@ -131,25 +139,23 @@ export default function StaffPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100/80 backdrop-blur p-1.5 rounded-2xl mb-8 max-w-md">
+        <div className="flex gap-1 mx-auto bg-gray-100/80 backdrop-blur p-1.5 rounded-2xl mb-8 max-w-md">
           <button
             onClick={() => setActiveTab("upload")}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === "upload"
-                ? "bg-white shadow-md text-primary-700"
-                : "text-gray-400 hover:text-gray-600"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === "upload"
+              ? "bg-white shadow-md text-primary-700"
+              : "text-gray-400 hover:text-gray-600"
+              }`}
           >
             <Upload className="w-4 h-4" />
             Upload New
           </button>
           <button
             onClick={() => setActiveTab("my-uploads")}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
-              activeTab === "my-uploads"
-                ? "bg-white shadow-md text-primary-700"
-                : "text-gray-400 hover:text-gray-600"
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${activeTab === "my-uploads"
+              ? "bg-white shadow-md text-primary-700"
+              : "text-gray-400 hover:text-gray-600"
+              }`}
           >
             <FolderOpen className="w-4 h-4" />
             My Uploads ({media.length})
@@ -158,7 +164,7 @@ export default function StaffPage() {
 
         {/* Content */}
         {activeTab === "upload" ? (
-          <div className="max-w-2xl animate-fade-in">
+          <div className="max-w-2xl mx-auto animate-fade-in">
             <div className="glass-card rounded-2xl p-6 sm:p-8">
               <h2 className="text-xl font-bold text-gray-800 mb-1">Upload Media</h2>
               <p className="text-sm text-gray-400 mb-6">
@@ -167,6 +173,7 @@ export default function StaffPage() {
               <UploadForm
                 onUploadSuccess={() => {
                   fetchMyMedia();
+                  fetchStats();
                 }}
               />
             </div>

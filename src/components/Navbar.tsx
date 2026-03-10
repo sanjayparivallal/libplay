@@ -52,6 +52,8 @@ export default function Navbar() {
 
   const isActive = (path: string) => pathname === path;
 
+  if (pathname === "/login") return null;
+
   return (
     <nav className="bg-white/80 backdrop-blur-xl shadow-sm border-b border-gray-100/80 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,55 +75,28 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-1">
             <Link
               href="/"
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                isActive("/")
-                  ? "bg-primary-50 text-primary-700 shadow-sm"
-                  : "text-gray-500 hover:text-primary-600 hover:bg-gray-50"
-              }`}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive("/")
+                ? "bg-primary-50 text-primary-700 shadow-sm"
+                : "text-gray-500 hover:text-primary-600 hover:bg-gray-50"
+                }`}
             >
               <Monitor className="w-4 h-4" />
               Display
             </Link>
 
-            {user?.role === "STAFF" && (
+
+
+            {(user?.role === "STAFF" || user?.role === "LIBRARIAN" || user?.role === "ADMIN") && (
               <Link
-                href="/staff"
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                  isActive("/staff")
+                href={user?.role === "STAFF" ? "/staff" : "/librarian"}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${isActive(user?.role === "STAFF" ? "/staff" : "/librarian")
                     ? "bg-primary-50 text-primary-700 shadow-sm"
                     : "text-gray-500 hover:text-primary-600 hover:bg-gray-50"
-                }`}
+                  }`}
               >
-                <Upload className="w-4 h-4" />
-                Upload Media
+                <Shield className="w-4 h-4" />
+                Dashboard
               </Link>
-            )}
-
-            {(user?.role === "LIBRARIAN" || user?.role === "ADMIN") && (
-              <>
-                <Link
-                  href="/staff"
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive("/staff")
-                      ? "bg-primary-50 text-primary-700 shadow-sm"
-                      : "text-gray-500 hover:text-primary-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Upload className="w-4 h-4" />
-                  Upload
-                </Link>
-                <Link
-                  href="/librarian"
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
-                    isActive("/librarian")
-                      ? "bg-primary-50 text-primary-700 shadow-sm"
-                      : "text-gray-500 hover:text-primary-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Shield className="w-4 h-4" />
-                  Manage Media
-                </Link>
-              </>
             )}
 
             {user ? (
@@ -183,25 +158,16 @@ export default function Navbar() {
               Display
             </Link>
 
-            {user && (
-              <Link
-                href="/staff"
-                onClick={() => setMenuOpen(false)}
-                className="flex items-center gap-2 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50"
-              >
-                <Upload className="w-5 h-5" />
-                Upload Media
-              </Link>
-            )}
 
-            {(user?.role === "LIBRARIAN" || user?.role === "ADMIN") && (
+
+            {(user?.role === "STAFF" || user?.role === "LIBRARIAN" || user?.role === "ADMIN") && (
               <Link
-                href="/librarian"
+                href={user?.role === "STAFF" ? "/staff" : "/librarian"}
                 onClick={() => setMenuOpen(false)}
                 className="flex items-center gap-2 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-50"
               >
                 <Shield className="w-5 h-5" />
-                Manage Media
+                Dashboard
               </Link>
             )}
 

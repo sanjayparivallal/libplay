@@ -4,6 +4,19 @@ import path from "path";
 
 export const dynamic = "force-dynamic";
 
+function iteratorToStream(iterator: any) {
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await iterator.next();
+      if (done) {
+        controller.close();
+      } else {
+        controller.enqueue(new Uint8Array(value));
+      }
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -41,6 +54,7 @@ export async function GET(request: NextRequest) {
 
       const chunksize = end - start + 1;
       const file = fs.createReadStream(filePath, { start, end });
+      const stream = iteratorToStream(file[Symbol.asyncIterator]());
 
       const head = {
         "Content-Range": `bytes ${start}-${end}/${fileSize}`,
@@ -49,8 +63,7 @@ export async function GET(request: NextRequest) {
         "Content-Type": "video/mp4",
       };
 
-      // @ts-ignore - ReadableStream from fs.createReadStream is compatible with NextResponse
-      return new NextResponse(file, {
+      return new NextResponse(stream, {
         status: 206,
         headers: head,
       });
@@ -59,10 +72,11 @@ export async function GET(request: NextRequest) {
         "Content-Length": fileSize.toString(),
         "Content-Type": "video/mp4",
       };
-      
+
       const file = fs.createReadStream(filePath);
-      // @ts-ignore
-      return new NextResponse(file, {
+      const stream = iteratorToStream(file[Symbol.asyncIterator]());
+
+      return new NextResponse(stream, {
         status: 200,
         headers: head,
       });

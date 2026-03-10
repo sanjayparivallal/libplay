@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import UploadForm from "@/components/UploadForm";
 import MediaCard from "@/components/MediaCard";
 import { MediaItem } from "@/lib/types";
 import {
@@ -12,6 +13,7 @@ import {
   Loader2,
   FolderOpen,
   Filter,
+  Upload,
 } from "lucide-react";
 
 interface User {
@@ -20,13 +22,14 @@ interface User {
   role: string;
 }
 
-type TabType = "pending" | "approved" | "rejected" | "all";
+type TabType = "upload" | "pending" | "approved" | "rejected" | "all";
 
 export default function LibrarianPage() {
   const [user, setUser] = useState<User | null>(null);
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("pending");
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
   const router = useRouter();
 
   useEffect(() => {
@@ -34,18 +37,21 @@ export default function LibrarianPage() {
   }, []);
 
   useEffect(() => {
+    // Only fetch media on tab change, wait for user
     if (user) fetchMedia();
   }, [user, activeTab]);
+
+  useEffect(() => {
+    // Fetch stats only once when user loads
+    if (user) fetchStats();
+  }, [user]);
 
   const checkAuth = async () => {
     try {
       const res = await fetch("/api/auth/me");
       const data = await res.json();
       if (data.success) {
-        if (
-          data.data.user.role !== "LIBRARIAN" &&
-          data.data.user.role !== "ADMIN"
-        ) {
+        if (data.data.user.role !== "LIBRARIAN") {
           router.push("/staff");
           return;
         }
@@ -80,6 +86,18 @@ export default function LibrarianPage() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/media/stats");
+      const data = await res.json();
+      if (data.success) {
+        setStats(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  };
+
   const handleApprove = async (id: string) => {
     try {
       const res = await fetch(`/api/media/${id}`, {
@@ -89,6 +107,10 @@ export default function LibrarianPage() {
       });
       const data = await res.json();
       if (data.success) {
+        // Find existing status before updating stats
+        const item = media.find((m) => m.id === id);
+        const oldStatus = item?.status;
+
         // Remove from list or update
         setMedia((prev) =>
           prev.map((m) => (m.id === id ? { ...m, status: "APPROVED" as const } : m))
@@ -97,6 +119,14 @@ export default function LibrarianPage() {
         if (activeTab === "pending") {
           setMedia((prev) => prev.filter((m) => m.id !== id));
         }
+
+        // Update global stats
+        setStats((prev) => ({
+          ...prev,
+          approved: prev.approved + 1,
+          pending: oldStatus === "PENDING" ? prev.pending - 1 : prev.pending,
+          rejected: oldStatus === "REJECTED" ? prev.rejected - 1 : prev.rejected,
+        }));
       }
     } catch (error) {
       console.error("Failed to approve:", error);
@@ -112,12 +142,22 @@ export default function LibrarianPage() {
       });
       const data = await res.json();
       if (data.success) {
+        const item = media.find((m) => m.id === id);
+        const oldStatus = item?.status;
+
         setMedia((prev) =>
           prev.map((m) => (m.id === id ? { ...m, status: "REJECTED" as const } : m))
         );
         if (activeTab === "pending") {
           setMedia((prev) => prev.filter((m) => m.id !== id));
         }
+
+        setStats((prev) => ({
+          ...prev,
+          rejected: prev.rejected + 1,
+          pending: oldStatus === "PENDING" ? prev.pending - 1 : prev.pending,
+          approved: oldStatus === "APPROVED" ? prev.approved - 1 : prev.approved,
+        }));
       }
     } catch (error) {
       console.error("Failed to reject:", error);
@@ -131,7 +171,17 @@ export default function LibrarianPage() {
       });
       const data = await res.json();
       if (data.success) {
+        const item = media.find((m) => m.id === id);
         setMedia((prev) => prev.filter((m) => m.id !== id));
+
+        if (item) {
+          setStats((prev) => ({
+            ...prev,
+            pending: item.status === "PENDING" ? prev.pending - 1 : prev.pending,
+            approved: item.status === "APPROVED" ? prev.approved - 1 : prev.approved,
+            rejected: item.status === "REJECTED" ? prev.rejected - 1 : prev.rejected,
+          }));
+        }
       } else {
         alert(data.error || "Failed to delete media");
       }
@@ -151,52 +201,83 @@ export default function LibrarianPage() {
 
   const tabs: { key: TabType; label: string; icon: React.ReactNode; activeClass: string }[] = [
     {
+      key: "upload",
+      label: "Upload Media",
+      icon: <Upload className="w-4 h-4" />,
+      activeClass: "bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/30",
+    },
+    {
       key: "pending",
       label: "Pending Review",
       icon: <Clock className="w-4 h-4" />,
-      activeClass: "bg-yellow-50 text-yellow-700 border-yellow-200 shadow-yellow-100/50",
+      activeClass: "bg-amber-500 text-white border-amber-400 shadow-lg shadow-amber-500/30",
     },
     {
       key: "approved",
       label: "Approved",
       icon: <CheckCircle className="w-4 h-4" />,
-      activeClass: "bg-green-50 text-green-700 border-green-200 shadow-green-100/50",
+      activeClass: "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-600/30",
     },
     {
       key: "rejected",
       label: "Rejected",
       icon: <XCircle className="w-4 h-4" />,
-      activeClass: "bg-red-50 text-red-700 border-red-200 shadow-red-100/50",
+      activeClass: "bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/30",
     },
     {
       key: "all",
       label: "All Media",
       icon: <Filter className="w-4 h-4" />,
-      activeClass: "bg-primary-50 text-primary-700 border-primary-200 shadow-primary-100/50",
+      activeClass: "bg-gray-800 text-white border-gray-700 shadow-lg shadow-gray-800/30",
     },
   ];
 
   return (
     <div className="min-h-screen">
       {/* Hero Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-primary-900 px-4 sm:px-6 lg:px-8 py-10 mb-8">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-72 h-72 bg-primary-500/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-accent-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-600/5 rounded-full blur-3xl" />
+      <div className="bg-gradient-to-r from-primary-600 to-primary-800 px-4 sm:px-6 lg:px-8 py-8 mb-6">
+        <div className="max-w-7xl mx-auto flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur flex items-center justify-center border border-white/20 shadow-sm shrink-0">
+            <Shield className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-white tracking-tight">
+              Librarian Dashboard
+            </h1>
+            <p className="text-primary-100 text-sm mt-0.5 font-medium">
+              Review, approve, and manage event media
+            </p>
+          </div>
         </div>
-        <div className="relative max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur flex items-center justify-center border border-white/10">
-              <Shield className="w-5 h-5 text-primary-300" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="bg-white border border-gray-100 shadow-md shadow-gray-200/50 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300 group border-l-4 border-l-amber-500">
+            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center group-hover:bg-amber-100 transition-colors">
+              <Clock className="w-6 h-6 text-amber-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">
-                Librarian Dashboard
-              </h1>
-              <p className="text-white/50 text-sm mt-0.5">
-                Review, approve, and manage event media
-              </p>
+              <p className="text-3xl font-extrabold text-gray-800 leading-none">{stats.pending}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">Pending</p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-100 shadow-md shadow-gray-200/50 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300 group border-l-4 border-l-emerald-500">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:bg-emerald-100 transition-colors">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-gray-800 leading-none">{stats.approved}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">Approved</p>
+            </div>
+          </div>
+          <div className="bg-white border border-gray-100 shadow-md shadow-gray-200/50 rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg transition-shadow duration-300 group border-l-4 border-l-rose-500">
+            <div className="w-12 h-12 rounded-xl bg-rose-50 flex items-center justify-center group-hover:bg-rose-100 transition-colors">
+              <XCircle className="w-6 h-6 text-rose-600" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-gray-800 leading-none">{stats.rejected}</p>
+              <p className="text-xs font-semibold text-gray-400 mt-1 uppercase tracking-wider">Rejected</p>
             </div>
           </div>
         </div>
@@ -204,16 +285,15 @@ export default function LibrarianPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8">
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
-                activeTab === tab.key
-                  ? tab.activeClass + " shadow-sm"
-                  : "bg-transparent border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50"
-              }`}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border ${activeTab === tab.key
+                ? tab.activeClass + " shadow-sm"
+                : "bg-transparent border-transparent text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                }`}
             >
               {tab.icon}
               {tab.label}
@@ -222,7 +302,21 @@ export default function LibrarianPage() {
         </div>
 
         {/* Content */}
-        {loading ? (
+        {activeTab === "upload" ? (
+          <div className="max-w-2xl mx-auto animate-fade-in">
+            <div className="glass-card rounded-2xl p-6 sm:p-8">
+              <h2 className="text-xl font-bold text-gray-800 mb-1">Upload Media</h2>
+              <p className="text-sm text-gray-400 mb-6">
+                Media uploaded by librarians is automatically approved and displayed.
+              </p>
+              <UploadForm
+                onUploadSuccess={() => {
+                  fetchMedia();
+                }}
+              />
+            </div>
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-48">
             <div className="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
           </div>
