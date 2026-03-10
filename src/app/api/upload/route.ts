@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import fs from "fs/promises";
-import path from "path";
+import { getDb, ObjectId } from "@/lib/mongodb";
 import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
@@ -36,7 +34,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine media type
     const isVideo = file.type.startsWith("video/");
     const isImage = file.type.startsWith("image/");
 
@@ -47,77 +44,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check file size (1GB limit)
-    const maxSize = 1024 * 1024 * 1024; // 1GB
-    if (file.size > maxSize) {
+    // 1 GB limit
+    if (file.size > 1024 * 1024 * 1024) {
       return NextResponse.json(
         { success: false, error: "File size must be under 1GB" },
         { status: 400 }
       );
     }
 
-    // Convert to buffer for local filesystem upload
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Generate unique filename
+    // Generate a unique filename for when the college storage server is integrated
     const uniqueId = crypto.randomUUID();
-    const extension = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
+    const extension = file.name.split(".").pop() || (isVideo ? "mp4" : "jpg");
     const filename = `${uniqueId}.${extension}`;
-    
-    // Ensure the uploads directory exists
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await fs.mkdir(uploadsDir, { recursive: true });
-    
-    // Save to local filesystem
-    const filePath = path.join(uploadsDir, filename);
-    await fs.writeFile(filePath, buffer);
 
-    const result = {
-      url: `/uploads/${filename}`,
-      thumbnailUrl: null, // Basic local integration lacks automatic transcoding
-      publicId: filename,
-      bytes: file.size,
-      duration: null
-    };
+    // Simulated URL — will be replaced with the college storage server URL later
+    const simulatedUrl = `/media/${filename}`;
 
-    // Save to database using Native Mongo driver
-    const { MongoClient, ObjectId } = require("mongodb");
-    const uri = process.env.DATABASE_URL || "mongodb://localhost:27017/libplay";
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db("libplay");
+    // Save metadata to MongoDB (no file written to disk yet)
+    const db = await getDb();
 
     const newMediaDoc = {
       title,
-      description,
+      description: description || null,
       type: isVideo ? "VIDEO" : "PHOTO",
-      url: result.url,
-      thumbnailUrl: result.thumbnailUrl,
-      publicId: result.publicId,
+      url: simulatedUrl,
+      thumbnailUrl: null,
+      publicId: filename,           // will become the file identifier on the storage server
       status: "PENDING",
-      eventName,
-      eventDate,
-      fileSize: result.bytes,
-      duration: result.duration,
+      eventName: eventName || null,
+      eventDate: eventDate || null,
+      fileSize: file.size,
+      duration: null,               // video duration — to be populated by storage server later
+      originalFilename: file.name,
+      mimeType: file.type,
       userId: user.userId,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     const insertResult = await db.collection("media").insertOne(newMediaDoc);
-    
-    // Simulate Prisma `include` 
-    const uploader = await db.collection("users").findOne({ _id: new ObjectId(user.userId) });
-    
+
+    const uploader = await db
+      .collection("users")
+      .findOne({ _id: new ObjectId(user.userId) });
+
     const media = {
       ...newMediaDoc,
       id: insertResult.insertedId.toString(),
       _id: undefined,
-      uploadedBy: uploader ? { id: uploader._id.toString(), name: uploader.name, email: uploader.email } : null
+      uploadedBy: uploader
+        ? { id: uploader._id.toString(), name: uploader.name, email: uploader.email }
+        : null,
     };
-
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -126,15 +104,10 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Upload error:", error);
-    const message =
-      error instanceof Error ? error.message : "Failed to upload media";
-    const isCloudinaryError = message.includes("cloud_name") || message.includes("Must supply");
     return NextResponse.json(
       {
         success: false,
-        error: isCloudinaryError
-          ? "Cloudinary is not configured. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in your .env file."
-          : message,
+        error: error instanceof Error ? error.message : "Failed to upload media",
       },
       { status: 500 }
     );

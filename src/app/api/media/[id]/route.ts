@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getDb, ObjectId } from "@/lib/mongodb";
 import { getUser } from "@/lib/auth";
-import { deleteFromCloudinary } from "@/lib/cloudinary";
 
 // PATCH /api/media/[id] - Approve or reject media (librarian only)
 export async function PATCH(
@@ -33,13 +32,9 @@ export async function PATCH(
       );
     }
 
-    const { MongoClient, ObjectId } = require("mongodb");
-    const uri = process.env.DATABASE_URL || "mongodb://localhost:27017/libplay";
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db("libplay");
-
+    const db = await getDb();
     const objectId = new ObjectId(params.id);
+
     await db.collection("media").updateOne(
       { _id: objectId },
       { $set: { status, updatedAt: new Date() } }
@@ -47,18 +42,23 @@ export async function PATCH(
 
     const rawMedia = await db.collection("media").findOne({ _id: objectId });
     let uploader = null;
-    if (rawMedia && rawMedia.userId) {
-       uploader = await db.collection("users").findOne({ _id: new ObjectId(rawMedia.userId) });
+    if (rawMedia?.userId) {
+      uploader = await db
+        .collection("users")
+        .findOne({ _id: new ObjectId(rawMedia.userId as string) });
     }
 
-    const media = rawMedia ? {
-      ...rawMedia,
-      id: rawMedia._id.toString(),
-      _id: undefined,
-      uploadedBy: uploader ? { id: uploader._id.toString(), name: uploader.name, email: uploader.email } : null
-    } : null;
-
-    await client.close();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const media = rawMedia
+      ? {
+          ...(rawMedia as any),
+          id: rawMedia._id.toString(),
+          _id: undefined,
+          uploadedBy: uploader
+            ? { id: uploader._id.toString(), name: uploader.name, email: uploader.email }
+            : null,
+        }
+      : null;
 
     return NextResponse.json({
       success: true,
@@ -74,7 +74,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/media/[id] - Delete media (librarian only)
+// DELETE /api/media/[id] - Delete media (librarian or homepage admin action)
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -88,23 +88,7 @@ export async function DELETE(
       );
     }
 
-    // Temporarily allowing all deletions as per user request
-    /*
-    if (user.role !== "LIBRARIAN" && user.role !== "ADMIN") {
-      return NextResponse.json(
-        { success: false, error: "Only librarians can delete media" },
-        { status: 403 }
-      );
-    }
-    */
-
-    // Get media to find Cloudinary public ID
-    const { MongoClient, ObjectId } = require("mongodb");
-    const uri = process.env.DATABASE_URL || "mongodb://localhost:27017/libplay";
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db("libplay");
-
+    const db = await getDb();
     const objectId = new ObjectId(params.id);
     const media = await db.collection("media").findOne({ _id: objectId });
 
@@ -115,20 +99,9 @@ export async function DELETE(
       );
     }
 
-    // Delete from Cloudinary
-    try {
-      await deleteFromCloudinary(
-        media.publicId,
-        media.type === "VIDEO" ? "video" : "image"
-      );
-    } catch (cloudError) {
-      console.error("Cloudinary delete error:", cloudError);
-      // Continue with DB deletion even if Cloudinary fails
-    }
-
-    // Delete from database
+    // Delete metadata from database
+    // NOTE: Physical file deletion will be handled by the college storage server later
     await db.collection("media").deleteOne({ _id: objectId });
-    await client.close();
 
     return NextResponse.json({
       success: true,
@@ -142,3 +115,4 @@ export async function DELETE(
     );
   }
 }
+

@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getDb, ObjectId } from "@/lib/mongodb";
 import { getUser } from "@/lib/auth";
 
-// GET /api/media - Get approved media (public) or all media for librarian
+export const dynamic = "force-dynamic";
+
+// GET /api/media
+// Public:        returns APPROVED media only
+// STAFF:         returns approved + own uploads
+// DISPLAY:       returns approved media only
+// LIBRARIAN/ADMIN: respects ?status filter, defaults to all
 export async function GET(request: NextRequest) {
   try {
     const user = await getUser();
@@ -12,36 +18,34 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
 
-    // Build where clause
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {};
+    let where: any = {};
 
-    // If not authenticated or is staff, only show approved
-    if (!user || user.role === "STAFF") {
-      where.status = "APPROVED";
-    } else if (status) {
-      where.status = status;
-    }
-
-    // If staff, also allow them to see their own uploads
-    if (user?.role === "STAFF") {
-      where.OR = [{ status: "APPROVED" }, { userId: user.userId }];
-      delete where.status;
+    if (!user || user.role === "STAFF" || user.role === "DISPLAY") {
+      if (user?.role === "STAFF") {
+        // Staff sees approved media + their own uploads
+        where = { $or: [{ status: "APPROVED" }, { userId: user.userId }] };
+      } else {
+        // Public and display users see approved media only
+        where.status = "APPROVED";
+      }
+    } else {
+      // Librarian / Admin — filter by status if provided
+      if (status) {
+        where.status = status;
+      }
     }
 
     if (type) {
       where.type = type;
     }
 
-    const { MongoClient, ObjectId } = require("mongodb");
-    const uri = process.env.DATABASE_URL || "mongodb://localhost:27017/libplay";
-    const client = new MongoClient(uri);
-    await client.connect();
-    const db = client.db("libplay");
+    const db = await getDb();
     const mediaCollection = db.collection("media");
 
     const [rawMedia, total] = await Promise.all([
-      mediaCollection.find(where)
+      mediaCollection
+        .find(where)
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -49,23 +53,25 @@ export async function GET(request: NextRequest) {
       mediaCollection.countDocuments(where),
     ]);
 
-    // Manually map uploder because populate doesn't exist here without aggregations
-    // But since it's just basic info we can aggregate or run a separate find
-    const userIds = Array.from(new Set(rawMedia.map((m: any) => m.userId)));
-    const users = await db.collection("users").find({ _id: { $in: userIds.map((id: any) => new ObjectId(id as string)) } }).toArray();
-    const userMap = users.reduce((acc: any, u: any) => {
+    // Fetch all uploaders in a single query
+    const userIds = Array.from(new Set(rawMedia.map((m) => m.userId as string)));
+    const users = await db
+      .collection("users")
+      .find({ _id: { $in: userIds.map((id) => new ObjectId(id)) } })
+      .toArray();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const userMap = users.reduce((acc: Record<string, any>, u) => {
       acc[u._id.toString()] = { id: u._id.toString(), name: u.name, email: u.email };
       return acc;
     }, {});
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const media = rawMedia.map((m: any) => ({
       ...m,
       id: m._id.toString(),
       _id: undefined,
-      uploadedBy: userMap[m.userId] || null
+      uploadedBy: userMap[m.userId as string] || null,
     }));
-
-    await client.close();
 
     return NextResponse.json({
       success: true,

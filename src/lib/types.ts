@@ -1,4 +1,4 @@
-export type Role = "STAFF" | "LIBRARIAN" | "ADMIN";
+export type Role = "DISPLAY" | "STAFF" | "LIBRARIAN" | "ADMIN";
 export type MediaType = "PHOTO" | "VIDEO";
 export type MediaStatus = "PENDING" | "APPROVED" | "REJECTED";
 

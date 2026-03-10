@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { signToken } from "@/lib/auth";
+import { getDb } from "@/lib/mongodb";
 import bcrypt from "bcryptjs";
 
 export const dynamic = "force-dynamic";
@@ -16,19 +16,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use native MongoDB driver to bypass Prisma replica set restrictions
-    const { MongoClient } = require("mongodb");
-    const uri = process.env.DATABASE_URL || "mongodb://localhost:27017/libplay";
-    const client = new MongoClient(uri);
-    await client.connect();
-    
-    // Hardcode db name to be safe
-    const db = client.db("libplay");
+    const db = await getDb();
     const user = await db.collection("users").findOne({ email });
-    await client.close();
-
-    console.log("LOGIN ATTEMPT FOR:", email);
-    console.log("USER FOUND:", user ? user.email : "NULL");
 
     if (!user) {
       return NextResponse.json(
@@ -37,7 +26,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = await bcrypt.compare(password, user.password);
+    const isValid = await bcrypt.compare(password, user.password as string);
     if (!isValid) {
       return NextResponse.json(
         { success: false, error: "Invalid credentials" },
@@ -49,7 +38,7 @@ export async function POST(request: NextRequest) {
       userId: user._id.toString(),
       email: user.email,
       name: user.name,
-      role: user.role as "STAFF" | "LIBRARIAN" | "ADMIN",
+      role: user.role as "DISPLAY" | "STAFF" | "LIBRARIAN" | "ADMIN",
     });
 
     const response = NextResponse.json({
