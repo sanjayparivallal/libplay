@@ -5,6 +5,7 @@ import crypto from "crypto";
 import { promises as fs, existsSync } from "fs";
 import path from "path";
 
+// POST /api/media/upload — Upload a new media file (staff / librarian)
 export async function POST(request: NextRequest) {
   try {
     const user = await getUser();
@@ -68,9 +69,10 @@ export async function POST(request: NextRequest) {
     // ────────────────────────────────────────────────────────────────
     const storageServerUrl = process.env.STORAGE_SERVER_URL;
     const storageSecret = process.env.STORAGE_SECRET;
+    const preferLocalStorage = process.env.PREFER_LOCAL_STORAGE === "true";
     let fileUrl: string;
 
-    if (storageServerUrl && storageSecret) {
+    if (!preferLocalStorage && storageServerUrl && storageSecret) {
       // ── VERCEL MODE ── forward file to the college storage server ──
       const forwardForm = new FormData();
       forwardForm.append("filename", filename); // pre-determined filename
@@ -102,8 +104,9 @@ export async function POST(request: NextRequest) {
       const filePath = path.join(uploadsDir, filename);
       await fs.writeFile(filePath, buffer);
 
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-      fileUrl = `${baseUrl}/api/media/stream?filename=${filename}`;
+      // Use relative URL to avoid breaking on different base URLs or ngrok tunnels
+      // When stored locally, the browser can fetch via relative path
+      fileUrl = `/api/media/stream?filename=${filename}`;
     }
 
     // Save metadata + file URL to MongoDB

@@ -8,7 +8,7 @@ const librarianRoutes = ["/librarian"];
 // Display page requires login but any role can access it
 const displayRoutes = ["/"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const isDisplayRoute = displayRoutes.some((route) => pathname === route);
