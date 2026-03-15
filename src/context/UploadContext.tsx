@@ -15,6 +15,7 @@ export interface UploadItem {
 
 interface UploadContextType {
   activeUploads: UploadItem[];
+  lastUploadCompletedAt: number | null;
   uploadMedia: (formData: FormData, fileName: string) => void;
   cancelUpload: (id: string) => void;
   removeUpload: (id: string) => void;
@@ -24,6 +25,7 @@ const UploadContext = createContext<UploadContextType | undefined>(undefined);
 
 export function UploadProvider({ children }: { children: React.ReactNode }) {
   const [activeUploads, setActiveUploads] = useState<UploadItem[]>([]);
+  const [lastUploadCompletedAt, setLastUploadCompletedAt] = useState<number | null>(null);
 
   const uploadMedia = useCallback((formData: FormData, fileName: string) => {
     const id = Math.random().toString(36).substring(7);
@@ -53,6 +55,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
         setActiveUploads((prev) =>
           prev.map((u) => (u.id === id ? { ...u, status: "success", progress: 100 } : u))
         );
+        setLastUploadCompletedAt(Date.now());
       } else {
         let errorMessage = "Upload failed";
         try {
@@ -96,7 +99,7 @@ export function UploadProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <UploadContext.Provider value={{ activeUploads, uploadMedia, cancelUpload, removeUpload }}>
+    <UploadContext.Provider value={{ activeUploads, lastUploadCompletedAt, uploadMedia, cancelUpload, removeUpload }}>
       {children}
     </UploadContext.Provider>
   );

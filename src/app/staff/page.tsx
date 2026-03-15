@@ -23,6 +23,7 @@ import Carousel from "@/components/Carousel";
 import UploadForm from "@/components/UploadForm";
 import MediaCard from "@/components/MediaCard";
 import { MediaItem } from "@/lib/types";
+import { useUpload } from "@/context/UploadContext";
 
 interface User {
   userId: string;
@@ -51,6 +52,7 @@ export default function StaffPage() {
   const [showProfilePassword, setShowProfilePassword] = useState(false);
   const [showProfileConfirmPassword, setShowProfileConfirmPassword] = useState(false);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const { lastUploadCompletedAt } = useUpload();
 
   const router = useRouter();
 
@@ -88,7 +90,7 @@ export default function StaffPage() {
       }
       fetchStats();
     }
-  }, [user, activeTab, submissionsTab]);
+  }, [user, activeTab, submissionsTab, lastUploadCompletedAt]);
 
   const checkAuth = async () => {
     try {

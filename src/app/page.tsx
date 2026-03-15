@@ -5,6 +5,7 @@ import DisplayCarousel from "@/components/Carousel";
 import { MediaItem } from "@/lib/types";
 import { Image as ImageIcon, Video, LayoutGrid, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useUpload } from "@/context/UploadContext";
 
 export default function DisplayPage() {
   const [user, setUser] = useState<any>(null);
@@ -15,6 +16,7 @@ export default function DisplayPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
+  const { lastUploadCompletedAt } = useUpload();
 
   // Show controls briefly on mouse movement / touch
   const showControls = useCallback(() => {
@@ -113,11 +115,10 @@ export default function DisplayPage() {
   }, [filter]);
 
   useEffect(() => {
-    setLoading(true);
     fetchMedia();
     const interval = setInterval(fetchMedia, 300000);
     return () => clearInterval(interval);
-  }, [fetchMedia]);
+  }, [fetchMedia, lastUploadCompletedAt]);
 
   const filters = [
     { key: "ALL" as const, label: "All", icon: <LayoutGrid className="w-3.5 h-3.5" /> },

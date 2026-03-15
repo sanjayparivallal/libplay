@@ -1,13 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getUser } from "@/lib/auth";
+import { getUser, isValidOrigin } from "@/lib/auth";
 import { getDb, ObjectId } from "@/lib/mongodb";
 import crypto from "crypto";
 import { promises as fs, existsSync } from "fs";
 import path from "path";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 300; // 5 minutes
+
 // POST /api/media/upload — Upload a new media file (staff / librarian)
 export async function POST(request: NextRequest) {
   try {
+    // Security check: only allow requests from this website
+    if (!isValidOrigin(request)) {
+      return NextResponse.json(
+        { success: false, error: "Access denied: External requests not allowed" },
+        { status: 403 }
+      );
+    }
     const user = await getUser();
     if (!user) {
       return NextResponse.json(

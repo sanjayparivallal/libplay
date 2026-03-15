@@ -52,6 +52,7 @@ import Carousel from "@/components/Carousel";
 import UploadForm from "@/components/UploadForm";
 import MediaCard from "@/components/MediaCard";
 import { MediaItem } from "@/lib/types";
+import { useUpload } from "@/context/UploadContext";
 
 interface User {
   userId: string;
@@ -160,6 +161,7 @@ export default function LibrarianPage() {
   const [globalPhotoDuration, setGlobalPhotoDuration] = useState<number>(5);
   const [isUpdatingBulk, setIsUpdatingBulk] = useState(false);
   const [previewMedia, setPreviewMedia] = useState<MediaItem | null>(null);
+  const { lastUploadCompletedAt } = useUpload();
   
   // DnD Sensors
   const sensors = useSensors(
@@ -310,7 +312,7 @@ export default function LibrarianPage() {
 
   useEffect(() => {
     if (user) fetchMedia();
-  }, [user, activeTab, mediaStreamTab]);
+  }, [user, activeTab, mediaStreamTab, lastUploadCompletedAt]);
 
   useEffect(() => {
     if (user) fetchStats();
