@@ -173,6 +173,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
+                  suppressHydrationWarning
                   className="w-full px-4 py-3 rounded-xl text-[15px] outline-none transition-all duration-200"
                   style={{
                     background: "#fff",
@@ -206,6 +207,7 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••"
                     required
+                    suppressHydrationWarning
                     className="w-full px-4 py-3 pr-12 rounded-xl text-[15px] outline-none transition-all duration-200"
                     style={{
                       background: "#fff",
@@ -249,6 +251,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading}
+                  suppressHydrationWarning
                   className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-semibold text-[15px] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     background: "#2d2d2d",
