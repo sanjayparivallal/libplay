@@ -7,6 +7,7 @@ import {
   X,
   Trash2,
   Play,
+  Pause,
   Image as ImageIcon,
   Clock,
   User,
@@ -27,6 +28,7 @@ interface MediaCardProps {
   onReject?: (id: string) => Promise<void>;
   onDelete?: (id: string) => Promise<void>;
   onUpdate?: (id: string, updates: Partial<MediaItem>) => Promise<void>;
+  onTogglePause?: (id: string, paused: boolean) => Promise<void>;
   dragHandleProps?: any;
   rank?: number;
 }
@@ -38,6 +40,7 @@ export default function MediaCard({
   onReject,
   onDelete,
   onUpdate,
+  onTogglePause,
   dragHandleProps,
   rank,
 }: MediaCardProps) {
@@ -62,7 +65,7 @@ export default function MediaCard({
   };
 
   const handleAction = async (
-    action: "approve" | "reject" | "delete",
+    action: "approve" | "reject" | "delete" | "pause",
     handler?: (id: string) => Promise<void>
   ) => {
     if (!handler) return;
@@ -155,6 +158,12 @@ export default function MediaCard({
             }`}>
               {media.type}
             </span>
+            {media.paused && (
+              <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider backdrop-blur-md border bg-slate-800/90 text-white border-slate-700/30 flex items-center gap-1">
+                <Pause className="w-2.5 h-2.5" />
+                Paused
+              </span>
+            )}
           </div>
 
           <div className="absolute top-4 right-4">
@@ -247,6 +256,28 @@ export default function MediaCard({
                 className="w-14 px-2 py-1.5 bg-white border border-slate-100 rounded-lg text-xs font-black text-center outline-none focus:ring-2 focus:ring-slate-100 transition-all shadow-sm"
               />
             </div>
+          )}
+
+          {/* Pause / Resume (Videos only, librarian, approved) */}
+          {mode === "librarian" && media.type === "VIDEO" && media.status === "APPROVED" && onTogglePause && (
+            <button
+              onClick={() => handleAction("pause", () => onTogglePause(media.id, !media.paused))}
+              disabled={loading !== null}
+              className={`w-full flex items-center justify-center gap-1.5 px-3 py-2.5 mt-4 rounded-xl text-[11px] font-black uppercase tracking-widest disabled:opacity-50 transition-all border ${
+                media.paused
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              {loading === "pause" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : media.paused ? (
+                <Play className="w-4 h-4" />
+              ) : (
+                <Pause className="w-4 h-4" />
+              )}
+              {media.paused ? "Resume on Display" : "Pause on Display"}
+            </button>
           )}
 
           {/* Actions */}

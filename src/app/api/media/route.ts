@@ -32,8 +32,9 @@ export async function GET(request: NextRequest) {
           where = { $or: [{ status: "APPROVED" }, { userId: user.userId }] };
         }
       } else {
-        // Public and display users see approved media only
+        // Public and display users see approved, non-paused media only
         where.status = "APPROVED";
+        where.paused = { $ne: true };
       }
     } else {
       // Librarian / Admin — filter by status if provided

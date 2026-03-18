@@ -417,10 +417,10 @@ export default function StaffPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                       {media.map((item, i) => (
                         <div key={item.id} className="animate-scale-in" style={{ animationDelay: `${i * 50}ms` }}>
-                          <MediaCard 
-                            media={item} 
-                            mode="staff" 
-                            onDelete={submissionsTab === "review" ? handleDelete : undefined}
+                          <MediaCard
+                            media={item}
+                            mode="staff"
+                            onDelete={submissionsTab === "review" || submissionsTab === "rejected" ? handleDelete : undefined}
                           />
                         </div>
                       ))}
@@ -433,7 +433,7 @@ export default function StaffPage() {
                           <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Asset Gallery</th>
                           <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Contributor</th>
                           <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Log Date</th>
-                          {submissionsTab === "review" && (
+                          {(submissionsTab === "review" || submissionsTab === "rejected") && (
                             <th className="px-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 text-right">Management</th>
                           )}
                         </tr>
@@ -479,7 +479,7 @@ export default function StaffPage() {
                               <p className="text-[11px] font-black text-slate-900 leading-tight">{new Date(item.createdAt).toLocaleDateString()}</p>
                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Asset Log</p>
                             </td>
-                            {submissionsTab === "review" && (
+                            {(submissionsTab === "review" || submissionsTab === "rejected") && (
                               <td className="px-8 py-6 text-right">
                                 <div className="flex justify-end gap-2 transition-all duration-300">
                                   <button onClick={() => handleDelete(item.id)} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-rose-100"><Trash2 className="w-5 h-5" /></button>

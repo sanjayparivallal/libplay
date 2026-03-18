@@ -18,6 +18,7 @@ import {
   Trash2,
   Edit,
   Play,
+  Pause,
   LogOut,
   List,
   LayoutGrid,
@@ -104,14 +105,15 @@ function SortableTableRow({ id, item, children, showDragHandle, onPreview }: { i
   );
 }
 
-function SortableMediaItem({ id, item, mode, onApprove, onReject, onDelete, onUpdate, rank }: { 
-  id: string, 
-  item: MediaItem, 
+function SortableMediaItem({ id, item, mode, onApprove, onReject, onDelete, onUpdate, onTogglePause, rank }: {
+  id: string,
+  item: MediaItem,
   mode: any,
   onApprove?: (id: string) => Promise<void>,
   onReject?: (id: string) => Promise<void>,
   onDelete?: (id: string) => Promise<void>,
   onUpdate?: (id: string, updates: Partial<MediaItem>) => Promise<void>,
+  onTogglePause?: (id: string, paused: boolean) => Promise<void>,
   rank?: number
 }) {
   const {
@@ -132,13 +134,14 @@ function SortableMediaItem({ id, item, mode, onApprove, onReject, onDelete, onUp
 
   return (
     <div ref={setNodeRef} style={style}>
-      <MediaCard 
-        media={item} 
-        mode={mode} 
-        onApprove={onApprove} 
-        onReject={onReject} 
-        onDelete={onDelete} 
+      <MediaCard
+        media={item}
+        mode={mode}
+        onApprove={onApprove}
+        onReject={onReject}
+        onDelete={onDelete}
         onUpdate={onUpdate}
+        onTogglePause={onTogglePause}
         dragHandleProps={{ ...attributes, ...listeners }}
         rank={rank}
       />
@@ -479,6 +482,22 @@ export default function LibrarianPage() {
       }
     } catch (error) {
       console.error("Failed to delete:", error);
+    }
+  };
+
+  const handleTogglePause = async (id: string, paused: boolean) => {
+    try {
+      const res = await fetch(`/api/media/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paused }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMedia((prev) => prev.map((m) => (m.id === id ? { ...m, paused } : m)));
+      }
+    } catch (error) {
+      console.error("Failed to toggle pause:", error);
     }
   };
 
@@ -824,15 +843,16 @@ export default function LibrarianPage() {
                     >
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
                         {media.map((item, index) => (
-                          <SortableMediaItem 
-                            key={item.id} 
-                            id={item.id} 
-                            item={item} 
-                            mode="librarian" 
-                            onApprove={handleApprove} 
-                            onReject={handleReject} 
+                          <SortableMediaItem
+                            key={item.id}
+                            id={item.id}
+                            item={item}
+                            mode="librarian"
+                            onApprove={handleApprove}
+                            onReject={handleReject}
                             onDelete={handleDelete}
                             onUpdate={handleUpdateMedia}
+                            onTogglePause={handleTogglePause}
                             rank={index + 1}
                           />
                         ))}
@@ -959,6 +979,19 @@ export default function LibrarianPage() {
                                         <button onClick={() => handleApprove(item.id)} className="p-2.5 text-emerald-500 hover:bg-emerald-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-emerald-100"><CheckCircle className="w-5 h-5" /></button>
                                         <button onClick={() => handleReject(item.id)} className="p-2.5 text-amber-500 hover:bg-amber-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-amber-100"><XCircle className="w-5 h-5" /></button>
                                       </>
+                                    )}
+                                    {mediaStreamTab === "current" && item.type === "VIDEO" && (
+                                      <button
+                                        onClick={() => handleTogglePause(item.id, !item.paused)}
+                                        title={item.paused ? "Resume on display" : "Pause on display"}
+                                        className={`p-2.5 rounded-xl transition-all shadow-sm border ${
+                                          item.paused
+                                            ? "text-emerald-600 hover:bg-emerald-50 border-transparent hover:border-emerald-100"
+                                            : "text-slate-500 hover:bg-slate-50 border-transparent hover:border-slate-100"
+                                        }`}
+                                      >
+                                        {item.paused ? <Play className="w-5 h-5" /> : <Pause className="w-5 h-5" />}
+                                      </button>
                                     )}
                                     <button onClick={() => handleDelete(item.id)} className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-rose-100"><Trash2 className="w-5 h-5" /></button>
                                   </div>

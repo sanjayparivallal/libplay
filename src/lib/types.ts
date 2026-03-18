@@ -17,6 +17,7 @@ export interface MediaItem {
   duration: number | null;
   displayDuration: number | null; // For photos, how long to show in carousel (seconds)
   order: number; // Manual sorting order
+  paused: boolean; // If true, video is hidden from display page
   userId: string;
   createdAt: string;
   updatedAt: string;

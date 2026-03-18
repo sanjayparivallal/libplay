@@ -27,11 +27,11 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { status, displayDuration } = body;
+    const { status, displayDuration, paused } = body;
 
-    if (!status && displayDuration === undefined) {
+    if (!status && displayDuration === undefined && paused === undefined) {
       return NextResponse.json(
-        { success: false, error: "Status or displayDuration is required" },
+        { success: false, error: "Status, displayDuration, or paused is required" },
         { status: 400 }
       );
     }
@@ -64,6 +64,7 @@ export async function PATCH(
     const updateDoc: any = { updatedAt: new Date() };
     if (status) updateDoc.status = status;
     if (displayDuration !== undefined) updateDoc.displayDuration = Number(displayDuration);
+    if (paused !== undefined) updateDoc.paused = Boolean(paused);
 
     await db.collection("media").updateOne(
       { _id: objectId },
@@ -132,16 +133,16 @@ export async function DELETE(
 
     // Role-based access control
     if (user.role === "STAFF") {
-      // Staff can only delete their own PENDING media
+      // Staff can only delete their own PENDING or REJECTED media
       if (media.userId !== user.userId) {
         return NextResponse.json(
           { success: false, error: "You can only delete your own media" },
           { status: 403 }
         );
       }
-      if (media.status !== "PENDING") {
+      if (media.status !== "PENDING" && media.status !== "REJECTED") {
         return NextResponse.json(
-          { success: false, error: "Only pending media can be deleted by staff" },
+          { success: false, error: "Only pending or rejected media can be deleted by staff" },
           { status: 403 }
         );
       }
