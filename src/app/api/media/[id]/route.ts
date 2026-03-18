@@ -94,7 +94,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: media,
-      message: `Media ${status.toLowerCase()} successfully`,
+      message: `Media updated successfully`,
     });
   } catch (error) {
     console.error("Update media error:", error);
