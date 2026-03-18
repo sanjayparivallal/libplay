@@ -258,8 +258,8 @@ export default function MediaCard({
             </div>
           )}
 
-          {/* Pause / Resume (Videos only, librarian, approved) */}
-          {mode === "librarian" && media.type === "VIDEO" && media.status === "APPROVED" && onTogglePause && (
+          {/* Pause / Resume (librarian, approved) */}
+          {mode === "librarian" && media.status === "APPROVED" && onTogglePause && (
             <button
               onClick={() => handleAction("pause", () => onTogglePause(media.id, !media.paused))}
               disabled={loading !== null}

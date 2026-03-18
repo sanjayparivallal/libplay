@@ -980,7 +980,7 @@ export default function LibrarianPage() {
                                         <button onClick={() => handleReject(item.id)} className="p-2.5 text-amber-500 hover:bg-amber-50 rounded-xl transition-all shadow-sm border border-transparent hover:border-amber-100"><XCircle className="w-5 h-5" /></button>
                                       </>
                                     )}
-                                    {mediaStreamTab === "current" && item.type === "VIDEO" && (
+                                    {mediaStreamTab === "current" && (
                                       <button
                                         onClick={() => handleTogglePause(item.id, !item.paused)}
                                         title={item.paused ? "Resume on display" : "Pause on display"}
